@@ -26,7 +26,7 @@ return [
         'host'    => 'localhost',
         'name'    => 'phile_backups',
         'user'    => 'root',
-        'pass'    => 'x1',
+        'pass'    => '',
         'charset' => 'utf8mb4',
         'port'    => 3306,
     ],
