@@ -22,36 +22,33 @@ require_once __DIR__ . '/functions.php';
 $pdo = getDatabase($config);
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-if (!$id) { header('Location: backups.php'); exit; }
+if(!$id) { header('Location: backups.php'); exit; }
 
 $stmt = $pdo->prepare("SELECT * FROM backups WHERE id = ?");
 $stmt->execute([$id]);
 $backup = $stmt->fetch(PDO::FETCH_ASSOC);
-if (!$backup) { header('Location: backups.php'); exit; }
+if(!$backup) { header('Location: backups.php'); exit; }
 
-// Check for retention tiers
 $stmt = $pdo->prepare("SELECT COUNT(*) FROM retention_tiers WHERE backup_id = ?");
 $stmt->execute([$id]);
 $tierCount = (int)$stmt->fetchColumn();
 
-// Streaming mode
-if (isset($_GET['stream']))
+if(isset($_GET['stream']))
 {
     header('Content-Type: text/plain; charset=utf-8');
     header('Cache-Control: no-cache');
     header('X-Accel-Buffering: no');
-    if (ob_get_level()) ob_end_clean();
+    if(ob_get_level()) ob_end_clean();
 
     echo "=== Enforcing retention for: {$backup['name']} ===\n";
 
-    if ($tierCount === 0 && (int)($backup['retention_max_count'] ?? 0) === 0)
+    if($tierCount === 0 && (int)($backup['retention_max_count'] ?? 0) === 0)
     {
         echo "No retention rules configured. Nothing to do.\n";
         echo "\nREDIRECT:backup.php?id={$id}\n";
         exit;
     }
 
-    // First rescan the directory to catch any new files
     echo "Scanning output directory...\n";
     flush();
     scanBackupFiles($pdo, $backup);
@@ -62,20 +59,19 @@ if (isset($_GET['stream']))
     echo "Active files before retention: $before\n\n";
     flush();
 
-    // Apply retention
     $result = applyRetention($pdo, $backup, dryRun: false);
 
     echo "Files kept:    " . count($result['kept'])    . "\n";
     echo "Files deleted: " . count($result['deleted']) . "\n";
 
-    if (!empty($result['deleted']))
+    if(!empty($result['deleted']))
     {
         echo "\nDeleted files:\n";
         foreach ($result['deleted'] as $f)
             echo "  - " . $f['filename'] . " (" . date('Y-m-d', (int)$f['file_mtime']) . ", " . formatBytes($f['filesize']) . ")\n";
     }
 
-    if (!empty($result['kept']))
+    if(!empty($result['kept']))
     {
         echo "\nKept files:\n";
         foreach ($result['kept'] as $f)
@@ -109,7 +105,7 @@ if (isset($_GET['stream']))
     <div class="card">
         <h2>Enforce Retention: <?= htmlspecialchars($backup['name']) ?></h2>
 
-        <?php if ($tierCount === 0 && (int)($backup['retention_max_count'] ?? 0) === 0): ?>
+        <?php if($tierCount === 0 && (int)($backup['retention_max_count'] ?? 0) === 0): ?>
             <div class="warning">No retention rules are configured for this job. <a href="edit-backup.php?id=<?= $id ?>">Edit the job</a> to add retention tiers.</div>
             <div class="actions"><a href="backup.php?id=<?= $id ?>" class="button secondary">Back</a></div>
         <?php else: ?>
@@ -137,7 +133,8 @@ if (isset($_GET['stream']))
     <?= htmlspecialchars($config['app_name']) ?> v<?= $config['version'] ?>
 </footer>
 <script>
-function startEnforce() {
+function startEnforce()
+{
     var btn = document.getElementById('run-btn');
     btn.disabled = true;
     btn.textContent = 'Working...';
@@ -145,12 +142,16 @@ function startEnforce() {
 
     var outputEl = document.getElementById('output');
     fetch('enforce-retention.php?id=<?= $id ?>&stream=1')
-        .then(function(response) {
+        .then(function(response)
+         {
             var reader = response.body.getReader();
             var decoder = new TextDecoder();
-            function read() {
-                reader.read().then(function(result) {
-                    if (result.done) {
+            function read()
+            {
+                reader.read().then(function(result)
+                {
+                    if(result.done)
+                    {
                         btn.textContent = 'Done';
                         document.getElementById('done-actions').style.display = 'flex';
                         return;
@@ -165,7 +166,8 @@ function startEnforce() {
             }
             read();
         })
-        .catch(function(err) {
+        .catch(function(err)
+        {
             outputEl.textContent += '\nError: ' + err;
             btn.textContent = 'Error';
         });

@@ -23,8 +23,7 @@ $pdo = getDatabase($config);
 
 $message = null;
 
-// Handle delete
-if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id']))
+if(isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id']))
 {
     $id = (int)$_GET['id'];
     $stmt = $pdo->prepare("DELETE FROM backups WHERE id = ?");
@@ -32,8 +31,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])
     $message = ['type' => 'success', 'text' => 'Backup job deleted.'];
 }
 
-// Handle toggle active
-if (isset($_GET['action']) && $_GET['action'] === 'toggle' && isset($_GET['id']))
+if(isset($_GET['action']) && $_GET['action'] === 'toggle' && isset($_GET['id']))
 {
     $id = (int)$_GET['id'];
     $stmt = $pdo->prepare("UPDATE backups SET is_active = 1 - is_active WHERE id = ?");
@@ -70,7 +68,7 @@ $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </header>
 <div class="container">
 
-    <?php if ($message): ?>
+    <?php if($message): ?>
         <div class="<?= $message['type'] ?>"><?= htmlspecialchars($message['text']) ?></div>
     <?php endif; ?>
 
@@ -80,7 +78,7 @@ $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <a href="edit-backup.php" class="button">+ New Backup Job</a>
         </div>
 
-        <?php if (empty($jobs)): ?>
+        <?php if(empty($jobs)): ?>
             <p style="color:#6c757d;">No backup jobs configured yet.</p>
         <?php else: ?>
         <table>
@@ -106,7 +104,7 @@ $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <td><code><?= htmlspecialchars($job['file_pattern'] ?? '*') ?></code></td>
                     <td><?= (int)$job['file_count'] ?></td>
                     <td>
-                        <?php if ($job['schedule_enabled']): ?>
+                        <?php if($job['schedule_enabled']): ?>
                             <?= htmlspecialchars(formatInterval((int)$job['schedule_interval'])) ?>
                         <?php else: ?>
                             <span style="color:#6c757d;">manual</span>
@@ -120,9 +118,9 @@ $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <td>
                         <?php
                         $ls = $job['last_status'];
-                        if ($ls === 'success')      echo '<span class="badge badge-success">OK</span>';
-                        elseif ($ls === 'failure')  echo '<span class="badge badge-danger">Failed</span>';
-                        elseif ($ls === 'running')  echo '<span class="badge badge-info">Running</span>';
+                        if($ls === 'success')      echo '<span class="badge badge-success">OK</span>';
+                        elseif($ls === 'failure')  echo '<span class="badge badge-danger">Failed</span>';
+                        elseif($ls === 'running')  echo '<span class="badge badge-info">Running</span>';
                         else                        echo '<span class="badge badge-secondary">Never</span>';
                         ?>
                     </td>

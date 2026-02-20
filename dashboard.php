@@ -21,13 +21,12 @@ require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
 $pdo = getDatabase($config);
 
-// Handle runner start/stop
 $runnerMsg = null;
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['runner_action']))
+if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['runner_action']))
 {
     $action  = $_POST['runner_action'];
     $dataDir = $config['data_dir'];
-    if ($action === 'start')
+    if($action === 'start')
     {
         $logFile = $dataDir . '/runner.log';
         $runnerPath = escapeshellarg(__DIR__ . '/runner.php');
@@ -35,13 +34,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['runner_action']))
         sleep(1);
         $runnerMsg = ['type' => 'success', 'text' => 'Runner started.'];
     }
-    elseif ($action === 'stop')
+    elseif($action === 'stop')
     {
         $pidFile = $dataDir . '/runner.pid';
-        if (file_exists($pidFile))
+        if(file_exists($pidFile))
         {
             $pid = (int)file_get_contents($pidFile);
-            if ($pid > 0)
+            if($pid > 0)
                 posix_kill($pid, SIGTERM);
             @unlink($pidFile);
         }
@@ -51,10 +50,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['runner_action']))
     exit;
 }
 
-// Runner status
 $runner = getRunnerStatus($config);
 
-// Summary stats
 $totalJobs = (int)$pdo->query("SELECT COUNT(*) FROM backups")->fetchColumn();
 $totalFiles = (int)$pdo->query("SELECT COUNT(*) FROM backup_files WHERE status = 'active'")->fetchColumn();
 $totalStorage = (int)$pdo->query("SELECT COALESCE(SUM(filesize), 0) FROM backup_files WHERE status = 'active'")->fetchColumn();
@@ -66,7 +63,6 @@ $lastFailed = $pdo->query("
     ORDER BY br.started_at DESC LIMIT 1
 ")->fetch(PDO::FETCH_ASSOC);
 
-// All backup jobs with stats
 $stmt = $pdo->query("
     SELECT b.*,
         (SELECT COUNT(*) FROM backup_files bf WHERE bf.backup_id = b.id AND bf.status = 'active') AS file_count,
@@ -107,13 +103,13 @@ $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
             default   => '<span class="badge badge-secondary">Stopped</span>',
         };
         echo $statusBadge;
-        if ($runner['status'] === 'running' && $runner['pid'])
+        if($runner['status'] === 'running' && $runner['pid'])
             echo ' <span style="color:#6c757d;font-size:0.9em;">PID ' . $runner['pid'] . '</span>';
-        if ($runner['heartbeat'])
+        if($runner['heartbeat'])
             echo ' <span style="color:#6c757d;font-size:0.9em;">Last heartbeat: ' . date('H:i:s', $runner['heartbeat']) . '</span>';
         ?>
         <div class="runner-actions">
-            <?php if ($runner['status'] !== 'running'): ?>
+            <?php if($runner['status'] !== 'running'): ?>
                 <form method="POST" style="margin:0;">
                     <input type="hidden" name="runner_action" value="start">
                     <button type="submit" class="button success small">Start Runner</button>
@@ -124,7 +120,7 @@ $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <button type="submit" class="button danger small">Stop Runner</button>
                 </form>
             <?php endif; ?>
-            <?php if ($runner['status'] === 'running'): ?>
+            <?php if($runner['status'] === 'running'): ?>
                 <a href="data/runner.log" class="button secondary small" target="_blank">View Log</a>
             <?php endif; ?>
         </div>
@@ -155,7 +151,7 @@ $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <!-- Job table -->
     <div class="card">
         <h2>Backup Jobs</h2>
-        <?php if (empty($jobs)): ?>
+        <?php if(empty($jobs)): ?>
             <p style="color:#6c757d;">No backup jobs yet. <a href="edit-backup.php">Create one.</a></p>
         <?php else: ?>
         <table>
@@ -177,7 +173,7 @@ $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <td><a href="backup.php?id=<?= $job['id'] ?>"><?= htmlspecialchars($job['name']) ?></a></td>
                     <td><span class="script-type"><?= htmlspecialchars($job['script_type']) ?></span></td>
                     <td>
-                        <?php if ($job['schedule_enabled'] && $job['schedule_interval']): ?>
+                        <?php if($job['schedule_enabled'] && $job['schedule_interval']): ?>
                             <?= htmlspecialchars(formatInterval((int)$job['schedule_interval'])) ?>
                         <?php else: ?>
                             <span style="color:#6c757d;">manual</span>
@@ -186,7 +182,7 @@ $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <td><?= (int)$job['file_count'] ?></td>
                     <td><?= formatBytes($job['storage_used']) ?></td>
                     <td>
-                        <?php if ($job['last_run_time']): ?>
+                        <?php if($job['last_run_time']): ?>
                             <?= date('Y-m-d H:i', (int)$job['last_run_time']) ?>
                         <?php else: ?>
                             <span style="color:#6c757d;">never</span>
@@ -195,13 +191,13 @@ $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <td>
                         <?php
                         $ls = $job['last_status'];
-                        if ($ls === 'success')
+                        if($ls === 'success')
                             echo '<span class="badge badge-success">OK</span>';
-                        elseif ($ls === 'failure')
+                        elseif($ls === 'failure')
                             echo '<span class="badge badge-danger">Failed</span>';
-                        elseif ($ls === 'running')
+                        elseif($ls === 'running')
                             echo '<span class="badge badge-info">Running</span>';
-                        elseif ($job['is_active'])
+                        elseif($job['is_active'])
                             echo '<span class="badge badge-secondary">Idle</span>';
                         else
                             echo '<span class="badge badge-secondary">Disabled</span>';

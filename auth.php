@@ -15,10 +15,10 @@
  limitations under the License.
 */
 
-if (session_status() === PHP_SESSION_NONE)
+if(session_status() === PHP_SESSION_NONE)
     session_start();
 
-if (!isset($_SESSION['pb_logged_in']) || $_SESSION['pb_logged_in'] !== true)
+if(!isset($_SESSION['pb_logged_in']) || $_SESSION['pb_logged_in'] !== true)
 {
     header('Location: login.php');
     exit;

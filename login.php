@@ -15,10 +15,10 @@
  limitations under the License.
 */
 
-if (session_status() === PHP_SESSION_NONE)
+if(session_status() === PHP_SESSION_NONE)
     session_start();
 
-if (isset($_SESSION['pb_logged_in']) && $_SESSION['pb_logged_in'] === true)
+if(isset($_SESSION['pb_logged_in']) && $_SESSION['pb_logged_in'] === true)
 {
     header('Location: dashboard.php');
     exit;
@@ -27,9 +27,9 @@ if (isset($_SESSION['pb_logged_in']) && $_SESSION['pb_logged_in'] === true)
 $config = require __DIR__ . '/conphig.php';
 $error  = null;
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['password']))
+if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['password']))
 {
-    if ($_POST['password'] === $config['admin_password'])
+    if($_POST['password'] === $config['admin_password'])
     {
         $_SESSION['pb_logged_in'] = true;
         header('Location: dashboard.php');
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['password']))
 <body>
     <div class="login-box">
         <h2><?= htmlspecialchars($config['app_name']) ?></h2>
-        <?php if ($error): ?>
+        <?php if($error): ?>
             <div class="error"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
         <form method="POST">

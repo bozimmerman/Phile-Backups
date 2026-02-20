@@ -22,21 +22,21 @@ require_once __DIR__ . '/functions.php';
 $pdo = getDatabase($config);
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-if (!$id) { header('Location: backups.php'); exit; }
+if(!$id) { header('Location: backups.php'); exit; }
 
 $stmt = $pdo->prepare("SELECT * FROM backups WHERE id = ?");
 $stmt->execute([$id]);
 $backup = $stmt->fetch(PDO::FETCH_ASSOC);
-if (!$backup) { header('Location: backups.php'); exit; }
+if(!$backup) { header('Location: backups.php'); exit; }
 
 $savedMsg = isset($_GET['saved']) ? 'Job saved successfully.' : null;
 
-// Retention tiers
+//scanBackupFiles($pdo, $backup);
+
 $stmt = $pdo->prepare("SELECT * FROM retention_tiers WHERE backup_id = ? ORDER BY sort_order ASC");
 $stmt->execute([$id]);
 $tiers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Active files
 $stmt = $pdo->prepare("
     SELECT * FROM backup_files
     WHERE backup_id = ?
@@ -45,7 +45,6 @@ $stmt = $pdo->prepare("
 $stmt->execute([$id]);
 $files = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Run history (last 30)
 $stmt = $pdo->prepare("
     SELECT * FROM backup_runs
     WHERE backup_id = ?
@@ -60,10 +59,9 @@ $activeFiles   = array_filter($files, fn($f) => $f['status'] === 'active');
 $deletedFiles  = array_filter($files, fn($f) => $f['status'] === 'deleted');
 $totalStorage  = array_sum(array_column(iterator_to_array((function() use ($activeFiles) { yield from $activeFiles; })()), 'filesize'));
 
-// Requested run log
 $viewRunId = isset($_GET['run']) ? (int)$_GET['run'] : null;
 $viewRun   = null;
-if ($viewRunId)
+if($viewRunId)
 {
     $stmt = $pdo->prepare("SELECT * FROM backup_runs WHERE id = ? AND backup_id = ?");
     $stmt->execute([$viewRunId, $id]);
@@ -89,7 +87,7 @@ if ($viewRunId)
 </header>
 <div class="container">
 
-    <?php if ($savedMsg): ?>
+    <?php if($savedMsg): ?>
         <div class="success"><?= htmlspecialchars($savedMsg) ?></div>
     <?php endif; ?>
 
@@ -98,7 +96,7 @@ if ($viewRunId)
         <div style="display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap;">
             <div style="flex:1;">
                 <h2><?= htmlspecialchars($backup['name']) ?></h2>
-                <?php if ($backup['description']): ?>
+                <?php if($backup['description']): ?>
                     <p style="color:#6c757d;margin-bottom:10px;"><?= htmlspecialchars($backup['description']) ?></p>
                 <?php endif; ?>
                 <table style="width:auto;margin:0;">
@@ -111,7 +109,7 @@ if ($viewRunId)
                         <td><?= $backup['is_active'] ? '<span class="badge badge-success">Yes</span>' : '<span class="badge badge-secondary">No</span>' ?></td></tr>
                     <tr><td style="padding:4px 12px 4px 0;color:#6c757d;">Last run</td>
                         <td><?= $backup['last_run_at'] ? date('Y-m-d H:i:s', (int)$backup['last_run_at']) : '<span style="color:#6c757d;">never</span>' ?></td></tr>
-                    <?php if ($backup['schedule_enabled'] && $backup['next_run_at']): ?>
+                    <?php if($backup['schedule_enabled'] && $backup['next_run_at']): ?>
                     <tr><td style="padding:4px 12px 4px 0;color:#6c757d;">Next run</td>
                         <td><?= date('Y-m-d H:i:s', (int)$backup['next_run_at']) ?></td></tr>
                     <?php endif; ?>
@@ -139,10 +137,10 @@ if ($viewRunId)
     </div>
 
     <!-- Retention tiers -->
-    <?php if (!empty($tiers)): ?>
+    <?php if(!empty($tiers)): ?>
     <div class="card">
         <h2>Retention Policy</h2>
-        <?php if ($backup['retention_max_count'] > 0): ?>
+        <?php if($backup['retention_max_count'] > 0): ?>
             <p style="margin-bottom:10px;">Overall cap: <strong><?= (int)$backup['retention_max_count'] ?></strong> files</p>
         <?php endif; ?>
         <table>
@@ -152,7 +150,7 @@ if ($viewRunId)
             $prevAge = 0;
             foreach ($tiers as $i => $tier):
                 $toAge = $tier['max_age_days'];
-                if ($prevAge === 0)
+                if($prevAge === 0)
                     $range = 'Up to ' . ($toAge ? $toAge . ' days' : 'any age');
                 else
                     $range = ($toAge ? "{$prevAge}–{$toAge} days" : "Older than {$prevAge} days");
@@ -171,18 +169,18 @@ if ($viewRunId)
     <?php endif; ?>
 
     <!-- Run log detail (if ?run=N) -->
-    <?php if ($viewRun): ?>
+    <?php if($viewRun): ?>
     <div class="card">
         <h2>Run Log - <?= date('Y-m-d H:i:s', (int)$viewRun['started_at']) ?></h2>
         <p>
             Status: <?php
-                if ($viewRun['status'] === 'success')     echo '<span class="badge badge-success">Success</span>';
-                elseif ($viewRun['status'] === 'failure') echo '<span class="badge badge-danger">Failure</span>';
-                elseif ($viewRun['status'] === 'running') echo '<span class="badge badge-info">Running</span>';
+                if($viewRun['status'] === 'success')     echo '<span class="badge badge-success">Success</span>';
+                elseif($viewRun['status'] === 'failure') echo '<span class="badge badge-danger">Failure</span>';
+                elseif($viewRun['status'] === 'running') echo '<span class="badge badge-info">Running</span>';
             ?>
             &nbsp; Exit code: <code><?= $viewRun['exit_code'] ?? '-' ?></code>
             &nbsp; Triggered by: <?= htmlspecialchars($viewRun['triggered_by'] ?? '-') ?>
-            <?php if ($viewRun['finished_at']): ?>
+            <?php if($viewRun['finished_at']): ?>
                 &nbsp; Duration: <?= (int)$viewRun['finished_at'] - (int)$viewRun['started_at'] ?>s
             <?php endif; ?>
         </p>
@@ -205,7 +203,7 @@ if ($viewRunId)
                 <?= $showDeleted ? 'Hide deleted files' : 'Show deleted/expired files' ?>
             </a>
         </div>
-        <?php if (empty($displayFiles)): ?>
+        <?php if(empty($displayFiles)): ?>
             <p style="color:#6c757d;">No files found. Run the backup job to scan for files.</p>
         <?php else: ?>
         <table>
@@ -227,9 +225,9 @@ if ($viewRunId)
                     <td><?= $file['discovered_at'] ? date('Y-m-d H:i', (int)$file['discovered_at']) : '-' ?></td>
                     <td class="status-<?= $file['status'] ?>">
                         <?php
-                        if ($file['status'] === 'active')
+                        if($file['status'] === 'active')
                             echo '<span class="badge badge-success">active</span>';
-                        elseif ($file['status'] === 'deleted')
+                        elseif($file['status'] === 'deleted')
                             echo '<span class="badge badge-danger">deleted</span>';
                         else
                             echo '<span class="badge badge-warning">' . htmlspecialchars($file['status']) . '</span>';
@@ -245,7 +243,7 @@ if ($viewRunId)
     <!-- Run history -->
     <div class="card">
         <h2>Run History</h2>
-        <?php if (empty($runs)): ?>
+        <?php if(empty($runs)): ?>
             <p style="color:#6c757d;">No runs yet.</p>
         <?php else: ?>
         <table>
@@ -264,7 +262,7 @@ if ($viewRunId)
                 <tr>
                     <td><?= date('Y-m-d H:i:s', (int)$run['started_at']) ?></td>
                     <td>
-                        <?php if ($run['finished_at']): ?>
+                        <?php if($run['finished_at']): ?>
                             <?= (int)$run['finished_at'] - (int)$run['started_at'] ?>s
                         <?php else: ?>-<?php endif; ?>
                     </td>
@@ -272,9 +270,9 @@ if ($viewRunId)
                     <td><code><?= $run['exit_code'] ?? '-' ?></code></td>
                     <td>
                         <?php
-                        if ($run['status'] === 'success')      echo '<span class="badge badge-success">OK</span>';
-                        elseif ($run['status'] === 'failure')  echo '<span class="badge badge-danger">Failed</span>';
-                        elseif ($run['status'] === 'running')  echo '<span class="badge badge-info">Running</span>';
+                        if($run['status'] === 'success')      echo '<span class="badge badge-success">OK</span>';
+                        elseif($run['status'] === 'failure')  echo '<span class="badge badge-danger">Failed</span>';
+                        elseif($run['status'] === 'running')  echo '<span class="badge badge-info">Running</span>';
                         else                                   echo htmlspecialchars($run['status']);
                         ?>
                     </td>

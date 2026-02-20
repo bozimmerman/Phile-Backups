@@ -19,16 +19,16 @@ function getDatabase($config)
 {
     $type = $config['db']['type'] ?? 'sqlite';
 
-    if ($type === 'sqlite')
+    if($type === 'sqlite')
     {
         $dbPath  = $config['db']['path'] ?? __DIR__ . '/data/phile-backups.db';
         $dataDir = dirname($dbPath);
-        if (!is_dir($dataDir))
+        if(!is_dir($dataDir))
             mkdir($dataDir, 0755, true);
         $pdo = new PDO("sqlite:$dbPath");
         $pdo->exec('PRAGMA foreign_keys = ON');
         $tables = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='backups'")->fetchAll();
-        if (empty($tables))
+        if(empty($tables))
             initializeSchema($pdo, $config, 'sqlite');
         return new SQLiteCompatPDO($pdo);
     }
@@ -69,13 +69,13 @@ class SQLiteCompatPDO
         $sql = str_replace('NOW()', "datetime('now')", $sql);
         $sql = str_replace('FROM_UNIXTIME(?)', "datetime(?, 'unixepoch')", $sql);
         $sql = preg_replace('/UNIX_TIMESTAMP\s*\(\s*([^)]+)\s*\)/', "strftime('%s', $1)", $sql);
-        if (stripos($sql, 'ON DUPLICATE KEY UPDATE') !== false)
+        if(stripos($sql, 'ON DUPLICATE KEY UPDATE') !== false)
         {
             $matches = [];
             preg_match('/ON DUPLICATE KEY UPDATE\s+(.+)$/is', $sql, $matches);
             $updateClause = isset($matches[1]) ? trim($matches[1]) : '';
             $sql = preg_replace('/\s+ON DUPLICATE KEY UPDATE\s+.+$/is', '', $sql);
-            if (!empty($updateClause))
+            if(!empty($updateClause))
             {
                 $updateClause = preg_replace('/VALUES\s*\(\s*(\w+)\s*\)/i', 'excluded.$1', $updateClause);
                 $sql .= ' ON CONFLICT DO UPDATE SET ' . $updateClause;
@@ -110,7 +110,7 @@ class SQLiteCompatPDO
 function initializeSchema($pdo, $config, $type)
 {
     $sql = file_get_contents(__DIR__ . '/schema.sql');
-    if ($type === 'sqlite')
+    if($type === 'sqlite')
     {
         $sql = preg_replace('/CREATE\s+DATABASE[^;]*;/i', '', $sql);
         $sql = preg_replace('/USE\s+\w+\s*;/i', '', $sql);
@@ -124,7 +124,7 @@ function initializeSchema($pdo, $config, $type)
     foreach ($statements as $statement)
     {
         $statement = trim($statement);
-        if (!empty($statement))
+        if(!empty($statement))
             $pdo->exec($statement);
     }
 }

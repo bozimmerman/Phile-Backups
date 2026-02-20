@@ -30,7 +30,7 @@
  */
 
 $isWeb = (php_sapi_name() !== 'cli');
-if ($isWeb)
+if($isWeb)
 {
     // Safety: don't let the web server accidentally run the daemon
     header('HTTP/1.1 403 Forbidden');
@@ -47,22 +47,20 @@ $pidFile       = $dataDir . '/runner.pid';
 $heartbeatFile = $dataDir . '/runner.heartbeat';
 $logFile       = $dataDir . '/runner.log';
 
-if (!is_dir($dataDir))
+if(!is_dir($dataDir))
     mkdir($dataDir, 0755, true);
 
-// Parse CLI args
 $args    = array_slice($argv ?? [], 1);
 $once    = in_array('--once', $args, true);
 $jobId   = null;
 foreach ($args as $arg)
 {
-    if (strpos($arg, '--job=') === 0)
+    if(strpos($arg, '--job=') === 0)
         $jobId = (int)substr($arg, 6);
 }
 
-// Signal handling
 $running = true;
-if (function_exists('pcntl_signal'))
+if(function_exists('pcntl_signal'))
 {
     pcntl_signal(SIGTERM, function() use (&$running) { $running = false; });
     pcntl_signal(SIGINT,  function() use (&$running) { $running = false; });
@@ -74,26 +72,22 @@ function logLine($msg)
     echo $line;
 }
 
-// Write PID
 file_put_contents($pidFile, getmypid());
 
 logLine("Runner started (PID " . getmypid() . ")");
-if ($once)    logLine("Mode: once");
-if ($jobId)   logLine("Mode: single job $jobId");
+if($once)    logLine("Mode: once");
+if($jobId)   logLine("Mode: single job $jobId");
 
-// Main loop
 do
 {
-    if (function_exists('pcntl_signal_dispatch'))
+    if(function_exists('pcntl_signal_dispatch'))
         pcntl_signal_dispatch();
 
-    if (!$running)
+    if(!$running)
         break;
 
-    // Update heartbeat
     file_put_contents($heartbeatFile, time());
 
-    // Get database connection (reconnect each iteration to avoid stale handles)
     try
     {
         $pdo = getDatabase($config);
@@ -105,26 +99,23 @@ do
         continue;
     }
 
-    // Find due jobs
     $now = time();
 
-    if ($jobId)
+    if($jobId)
     {
-        // Single specific job
         $stmt = $pdo->prepare("SELECT * FROM backups WHERE id = ? AND is_active = 1");
         $stmt->execute([$jobId]);
         $dueJobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-    elseif ($once)
+    else
+    if($once)
     {
-        // All scheduled jobs regardless of next_run_at
         $stmt = $pdo->prepare("SELECT * FROM backups WHERE schedule_enabled = 1 AND is_active = 1");
         $stmt->execute();
         $dueJobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     else
     {
-        // Normal daemon: only jobs whose next_run_at has passed
         $stmt = $pdo->prepare("
             SELECT * FROM backups
             WHERE schedule_enabled = 1
@@ -137,7 +128,7 @@ do
 
     foreach ($dueJobs as $backup)
     {
-        if (!$running)
+        if(!$running)
             break;
 
         logLine("Running job #{$backup['id']}: {$backup['name']}");
@@ -147,16 +138,14 @@ do
             $runId = runBackupJob($pdo, $backup, 'scheduler', false);
             logLine("  Job #{$backup['id']} done (run $runId)");
 
-            // Apply retention after each run
             $tierStmt = $pdo->prepare("SELECT COUNT(*) FROM retention_tiers WHERE backup_id = ?");
             $tierStmt->execute([$backup['id']]);
-            if ((int)$tierStmt->fetchColumn() > 0 || (int)($backup['retention_max_count'] ?? 0) > 0)
+            if((int)$tierStmt->fetchColumn() > 0 || (int)($backup['retention_max_count'] ?? 0) > 0)
             {
                 $retResult = applyRetention($pdo, $backup);
                 logLine("  Retention: kept " . count($retResult['kept']) . ", deleted " . count($retResult['deleted']));
             }
 
-            // Advance next_run_at
             $nextAt = $now + (int)$backup['schedule_interval'];
             $stmt = $pdo->prepare("UPDATE backups SET next_run_at = ? WHERE id = ?");
             $stmt->execute([$nextAt, $backup['id']]);
@@ -168,20 +157,18 @@ do
         }
     }
 
-    if ($once || $jobId)
+    if($once || $jobId)
         break;
 
-    // Sleep 30 seconds between checks
     logLine("Sleeping 30s...");
-    for ($i = 0; $i < 30 && $running; $i++)
+    for($i = 0; $i < 30 && $running; $i++)
     {
         sleep(1);
-        if (function_exists('pcntl_signal_dispatch'))
+        if(function_exists('pcntl_signal_dispatch'))
             pcntl_signal_dispatch();
     }
 
-} while ($running);
+} while($running);
 
-// Cleanup
 @unlink($pidFile);
 logLine("Runner stopped.");

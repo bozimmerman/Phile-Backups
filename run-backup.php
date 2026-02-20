@@ -22,21 +22,20 @@ require_once __DIR__ . '/functions.php';
 $pdo = getDatabase($config);
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-if (!$id) { header('Location: backups.php'); exit; }
+if(!$id) { header('Location: backups.php'); exit; }
 
 $stmt = $pdo->prepare("SELECT * FROM backups WHERE id = ?");
 $stmt->execute([$id]);
 $backup = $stmt->fetch(PDO::FETCH_ASSOC);
-if (!$backup) { header('Location: backups.php'); exit; }
+if(!$backup) { header('Location: backups.php'); exit; }
 
-// Streaming execution mode - called by JS fetch
-if (isset($_GET['stream']))
+if(isset($_GET['stream']))
 {
     header('Content-Type: text/plain; charset=utf-8');
     header('Cache-Control: no-cache');
     header('X-Accel-Buffering: no');
 
-    if (ob_get_level())
+    if(ob_get_level())
         ob_end_clean();
 
     $now  = time();
@@ -65,7 +64,6 @@ if (isset($_GET['stream']))
     $stmt = $pdo->prepare("UPDATE backups SET last_run_at = ? WHERE id = ?");
     $stmt->execute([$now, $id]);
 
-    // Scan for output files
     echo "\nScanning output directory for backup files...\n";
     flush();
     scanBackupFiles($pdo, $backup);
@@ -75,7 +73,7 @@ if (isset($_GET['stream']))
     $fileCount = $stmt->fetchColumn();
     echo "Found $fileCount active backup file(s).\n";
 
-    if (isset($_GET['retain']))
+    if(isset($_GET['retain']))
     {
         echo "\nApplying retention rules...\n";
         flush();
@@ -143,7 +141,8 @@ if (isset($_GET['stream']))
     <?= htmlspecialchars($config['app_name']) ?> v<?= $config['version'] ?>
 </footer>
 <script>
-function startRun() {
+function startRun()
+{
     var retain = document.getElementById('auto_retain').checked;
     var btn    = document.getElementById('run-btn');
     btn.disabled = true;
@@ -154,29 +153,37 @@ function startRun() {
     var outputEl = document.getElementById('output');
 
     fetch(url)
-        .then(function(response) {
+        .then(function(response)
+         {
             var reader = response.body.getReader();
             var decoder = new TextDecoder();
             var redirectTo = null;
 
-            function read() {
-                reader.read().then(function(result) {
-                    if (result.done) {
+            function read()
+            {
+                reader.read().then(function(result)
+                {
+                    if(result.done)
+                    {
                         btn.textContent = 'Done';
                         document.getElementById('done-actions').style.display = 'flex';
-                        if (redirectTo) {
+                        if(redirectTo)
+                        {
                             document.getElementById('view-run-link').href = redirectTo;
                         }
                         return;
                     }
                     var text = decoder.decode(result.value, {stream: true});
-                    // Check for redirect hint
                     var lines = text.split('\n');
                     var clean = [];
-                    lines.forEach(function(line) {
-                        if (line.startsWith('REDIRECT:')) {
+                    lines.forEach(function(line)
+                    {
+                        if(line.startsWith('REDIRECT:'))
+                        {
                             redirectTo = line.substring(9);
-                        } else {
+                        } 
+                        else
+                        {
                             clean.push(line);
                         }
                     });
@@ -187,7 +194,8 @@ function startRun() {
             }
             read();
         })
-        .catch(function(err) {
+        .catch(function(err)
+        {
             outputEl.textContent += '\nError: ' + err;
             btn.textContent = 'Error';
         });

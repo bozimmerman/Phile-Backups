@@ -26,13 +26,12 @@ $tiers   = [];
 $errors  = [];
 $success = null;
 
-// Load existing backup if editing
-if ($id)
+if($id)
 {
     $stmt = $pdo->prepare("SELECT * FROM backups WHERE id = ?");
     $stmt->execute([$id]);
     $backup = $stmt->fetch(PDO::FETCH_ASSOC);
-    if (!$backup)
+    if(!$backup)
     {
         header('Location: backups.php');
         exit;
@@ -42,8 +41,7 @@ if ($id)
     $tiers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// Handle form submit
-if ($_SERVER['REQUEST_METHOD'] === 'POST')
+if($_SERVER['REQUEST_METHOD'] === 'POST')
 {
     $name               = trim($_POST['name'] ?? '');
     $description        = trim($_POST['description'] ?? '');
@@ -57,33 +55,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
     $isActive           = isset($_POST['is_active']) ? 1 : 0;
 
     $validTypes = ['bash', 'batch', 'powershell', 'php'];
-    if (!in_array($scriptType, $validTypes, true))
+    if(!in_array($scriptType, $validTypes, true))
         $scriptType = 'bash';
 
-    if ($name === '')
+    if($name === '')
         $errors[] = 'Name is required.';
-    if ($outputDirectory === '')
+    if($outputDirectory === '')
         $errors[] = 'Output directory is required.';
 
-    // Parse tier rows
     $submittedTiers = [];
-    if (isset($_POST['tier_max_age']) && is_array($_POST['tier_max_age']))
+    if(isset($_POST['tier_max_age']) && is_array($_POST['tier_max_age']))
     {
         $granularities = $_POST['tier_gran'] ?? [];
         foreach ($_POST['tier_max_age'] as $i => $rawAge)
         {
             $gran = $granularities[$i] ?? 'all';
             $validGrans = ['all', 'daily', 'weekly', 'monthly', 'yearly'];
-            if (!in_array($gran, $validGrans, true))
+            if(!in_array($gran, $validGrans, true))
                 $gran = 'all';
             $maxAge = $rawAge === '' || $rawAge === null ? null : max(1, (int)$rawAge);
             $submittedTiers[] = ['max_age_days' => $maxAge, 'keep_granularity' => $gran];
         }
     }
 
-    if (empty($errors))
+    if(empty($errors))
     {
-        if ($id)
+        if($id)
         {
             $stmt = $pdo->prepare("
                 UPDATE backups SET
@@ -114,7 +111,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
             $id = (int)$pdo->lastInsertId();
         }
 
-        // Replace retention tiers
         $stmt = $pdo->prepare("DELETE FROM retention_tiers WHERE backup_id = ?");
         $stmt->execute([$id]);
         foreach ($submittedTiers as $order => $tier)
@@ -123,8 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
             $stmt->execute([$id, $order + 1, $tier['max_age_days'], $tier['keep_granularity']]);
         }
 
-        // Update next_run_at if scheduling enabled
-        if ($scheduleEnabled)
+        if($scheduleEnabled)
         {
             $next = time() + $scheduleInterval;
             $stmt = $pdo->prepare("UPDATE backups SET next_run_at = ? WHERE id = ? AND (next_run_at IS NULL OR next_run_at < ?)");
@@ -135,7 +130,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
         exit;
     }
 
-    // Re-populate from POST on error
     $backup = [
         'id'                  => $id,
         'name'                => $name,
@@ -246,7 +240,7 @@ $scriptType = $backup['script_type'] ?? 'bash';
             </p>
 
             <div id="tier-list" class="tier-list">
-                <?php if (empty($tiers)): ?>
+                <?php if(empty($tiers)): ?>
                     <!-- default: keep all -->
                     <div class="tier-row" data-tier>
                         <label>For files up to</label>
@@ -273,7 +267,7 @@ $scriptType = $backup['script_type'] ?? 'bash';
                     <?php foreach ($tiers as $i => $tier): ?>
                         <?php $isLast = ($tier['max_age_days'] === null); ?>
                         <div class="tier-row" data-tier>
-                            <?php if (!$isLast): ?>
+                            <?php if(!$isLast): ?>
                                 <label>For files up to</label>
                                 <input type="number" name="tier_max_age[]"
                                        value="<?= (int)$tier['max_age_days'] ?>" min="1" style="width:80px;">
@@ -348,7 +342,7 @@ $scriptType = $backup['script_type'] ?? 'bash';
 
         <div class="actions">
             <button type="submit">Save Job</button>
-            <?php if ($id): ?>
+            <?php if($id): ?>
                 <a href="backup.php?id=<?= $id ?>" class="button secondary">Cancel</a>
             <?php else: ?>
                 <a href="backups.php" class="button secondary">Cancel</a>
@@ -369,7 +363,6 @@ $scriptType = $backup['script_type'] ?? 'bash';
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
 <script>
-// CodeMirror setup
 var modeMap = {bash: 'shell', batch: null, powershell: null, php: 'php'};
 var editor = CodeMirror.fromTextArea(document.getElementById('script_content'), {
     mode: modeMap['<?= $scriptType ?>'] || null,
@@ -379,15 +372,16 @@ var editor = CodeMirror.fromTextArea(document.getElementById('script_content'), 
     tabSize: 4,
     lineWrapping: false,
 });
-document.getElementById('script_type').addEventListener('change', function() {
+document.getElementById('script_type').addEventListener('change', function() 
+{
     var mode = modeMap[this.value] || null;
     editor.setOption('mode', mode);
 });
 
-// Retention tier editor
 var granOptions = '<option value="all">Keep all</option><option value="daily">1 per day</option><option value="weekly">1 per week</option><option value="monthly">1 per month</option><option value="yearly">1 per year</option>';
 
-function addTierBounded() {
+function addTierBounded() 
+{
     var row = document.createElement('div');
     row.className = 'tier-row';
     row.setAttribute('data-tier', '');
@@ -399,7 +393,8 @@ function addTierBounded() {
     document.getElementById('tier-list').appendChild(row);
 }
 
-function addTierCatchAll() {
+function addTierCatchAll() 
+{
     var row = document.createElement('div');
     row.className = 'tier-row';
     row.setAttribute('data-tier', '');
@@ -410,13 +405,14 @@ function addTierCatchAll() {
     document.getElementById('tier-list').appendChild(row);
 }
 
-function removeTier(btn) {
+function removeTier(btn) 
+{
     btn.closest('[data-tier]').remove();
 }
 
-// Schedule preset
-function applyPreset(val) {
-    if (val && val !== 'custom')
+function applyPreset(val) 
+{
+    if(val && val !== 'custom')
         document.getElementById('schedule_interval').value = val;
 }
 </script>
