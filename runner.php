@@ -60,7 +60,7 @@ foreach ($args as $arg)
         $jobId = (int)substr($arg, 6);
 }
 
-// ── Signal handling ──────────────────────────────────────────────────────────
+// Signal handling
 $running = true;
 if (function_exists('pcntl_signal'))
 {
@@ -74,14 +74,14 @@ function logLine($msg)
     echo $line;
 }
 
-// ── Write PID ────────────────────────────────────────────────────────────────
+// Write PID
 file_put_contents($pidFile, getmypid());
 
 logLine("Runner started (PID " . getmypid() . ")");
 if ($once)    logLine("Mode: once");
 if ($jobId)   logLine("Mode: single job $jobId");
 
-// ── Main loop ────────────────────────────────────────────────────────────────
+// Main loop
 do
 {
     if (function_exists('pcntl_signal_dispatch'))
@@ -105,7 +105,7 @@ do
         continue;
     }
 
-    // ── Find due jobs ────────────────────────────────────────────────────────
+    // Find due jobs
     $now = time();
 
     if ($jobId)
