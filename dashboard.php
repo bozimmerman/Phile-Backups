@@ -207,6 +207,10 @@ $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <a href="backup.php?id=<?= $job['id'] ?>" class="button secondary small">View</a>
                         <a href="edit-backup.php?id=<?= $job['id'] ?>" class="button small">Edit</a>
                         <a href="run-backup.php?id=<?= $job['id'] ?>" class="button success small">Run</a>
+                        <?php if(!empty($job['restore_script_content'])): ?>
+                            <a href="run-restore.php?id=<?= $job['id'] ?>" class="button danger small"
+                               onclick="return confirm('Run restore for: <?= htmlspecialchars($job['name'], ENT_QUOTES) ?>?')">Restore</a>
+                        <?php endif; ?>
                     </td>
                 </tr>
             <?php endforeach; ?>

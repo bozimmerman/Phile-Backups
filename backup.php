@@ -131,6 +131,10 @@ if($viewRunId)
         <div class="actions" style="margin-top:20px;">
             <a href="edit-backup.php?id=<?= $id ?>" class="button">Edit Job</a>
             <a href="run-backup.php?id=<?= $id ?>" class="button success">Run Now</a>
+            <?php if(!empty($backup['restore_script_content'])): ?>
+                <a href="run-restore.php?id=<?= $id ?>" class="button danger"
+                   onclick="return confirm('Run the restore script for this job? This may overwrite existing data.')">Run Restore</a>
+            <?php endif; ?>
             <a href="enforce-retention.php?id=<?= $id ?>" class="button secondary"
                onclick="return confirm('Apply retention rules and delete expired files?')">Enforce Retention</a>
         </div>

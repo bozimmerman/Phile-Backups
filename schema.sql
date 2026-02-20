@@ -1,19 +1,21 @@
 CREATE TABLE IF NOT EXISTS `backups` (
-    `id`                  INT AUTO_INCREMENT PRIMARY KEY,
-    `name`                VARCHAR(255) NOT NULL,
-    `description`         TEXT,
-    `script_type`         VARCHAR(20)  NOT NULL DEFAULT 'bash',
-    `script_content`      TEXT,
-    `output_directory`    TEXT,
-    `file_pattern`        VARCHAR(255) DEFAULT '*',
-    `retention_max_count` INT          DEFAULT 0,
-    `schedule_enabled`    INT          DEFAULT 0,
-    `schedule_interval`   INT          DEFAULT 86400,
-    `last_run_at`         INT          DEFAULT NULL,
-    `next_run_at`         INT          DEFAULT NULL,
-    `is_active`           INT          DEFAULT 1,
-    `created_at`          DATETIME     DEFAULT NOW(),
-    `updated_at`          DATETIME     DEFAULT NOW()
+    `id`                     INT AUTO_INCREMENT PRIMARY KEY,
+    `name`                   VARCHAR(255) NOT NULL,
+    `description`            TEXT,
+    `script_type`            VARCHAR(20)  NOT NULL DEFAULT 'bash',
+    `script_content`         TEXT,
+    `restore_script_type`    VARCHAR(20)  DEFAULT NULL,
+    `restore_script_content` TEXT         DEFAULT NULL,
+    `output_directory`       TEXT,
+    `file_pattern`           VARCHAR(255) DEFAULT '*',
+    `retention_max_count`    INT          DEFAULT 0,
+    `schedule_enabled`       INT          DEFAULT 0,
+    `schedule_interval`      INT          DEFAULT 86400,
+    `last_run_at`            INT          DEFAULT NULL,
+    `next_run_at`            INT          DEFAULT NULL,
+    `is_active`              INT          DEFAULT 1,
+    `created_at`             DATETIME     DEFAULT NOW(),
+    `updated_at`             DATETIME     DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS `retention_tiers` (

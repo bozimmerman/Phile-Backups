@@ -35,6 +35,8 @@ function executeScript($backup)
     }
 
     $tmpFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . "pb_{$id}_{$uid}.{$ext}";
+    if($type === 'bash' || $type === 'php')
+        $content = str_replace("\r", '', $content);
     file_put_contents($tmpFile, $content);
     if($type === 'bash' || $type === 'php')
         chmod($tmpFile, 0755);

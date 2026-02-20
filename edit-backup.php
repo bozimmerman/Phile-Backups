@@ -43,17 +43,26 @@ if($id)
 
 if($_SERVER['REQUEST_METHOD'] === 'POST')
 {
-    $name               = trim($_POST['name'] ?? '');
-    $description        = trim($_POST['description'] ?? '');
-    $scriptType         = $_POST['script_type'] ?? 'bash';
-    $scriptContent      = $_POST['script_content'] ?? '';
-    $outputDirectory    = trim($_POST['output_directory'] ?? '');
-    $filePattern        = trim($_POST['file_pattern'] ?? '*') ?: '*';
-    $retentionMaxCount  = max(0, (int)($_POST['retention_max_count'] ?? 0));
-    $scheduleEnabled    = isset($_POST['schedule_enabled']) ? 1 : 0;
-    $scheduleInterval   = max(60, (int)($_POST['schedule_interval'] ?? 86400));
-    $isActive           = isset($_POST['is_active']) ? 1 : 0;
-
+    $name                 = trim($_POST['name'] ?? '');
+    $description          = trim($_POST['description'] ?? '');
+    $scriptType           = $_POST['script_type'] ?? 'bash';
+    $scriptContent        = $_POST['script_content'] ?? '';
+    $outputDirectory      = trim($_POST['output_directory'] ?? '');
+    $filePattern          = trim($_POST['file_pattern'] ?? '*') ?: '*';
+    $retentionMaxCount    = max(0, (int)($_POST['retention_max_count'] ?? 0));
+    $scheduleEnabled      = isset($_POST['schedule_enabled']) ? 1 : 0;
+    $scheduleInterval     = max(60, (int)($_POST['schedule_interval'] ?? 86400));
+    $isActive             = isset($_POST['is_active']) ? 1 : 0;
+    $restoreEnabled       = isset($_POST['restore_enabled']) ? 1 : 0;
+    $restoreScriptType    = $_POST['restore_script_type'] ?? 'bash';
+    $restoreScriptContent = $restoreEnabled ? ($_POST['restore_script_content'] ?? '') : '';
+    
+    $validTypes = ['bash', 'batch', 'powershell', 'php'];
+    if(!in_array($scriptType, $validTypes, true))
+        $scriptType = 'bash';
+    if(!in_array($restoreScriptType, $validTypes, true))
+        $restoreScriptType = 'bash';
+            
     $validTypes = ['bash', 'batch', 'powershell', 'php'];
     if(!in_array($scriptType, $validTypes, true))
         $scriptType = 'bash';
@@ -86,13 +95,17 @@ if($_SERVER['REQUEST_METHOD'] === 'POST')
                 UPDATE backups SET
                     name = ?, description = ?, script_type = ?, script_content = ?,
                     output_directory = ?, file_pattern = ?, retention_max_count = ?,
-                    schedule_enabled = ?, schedule_interval = ?, is_active = ?
+                    schedule_enabled = ?, schedule_interval = ?, is_active = ?,
+                    restore_script_type = ?, restore_script_content = ?
                 WHERE id = ?
             ");
             $stmt->execute([
                 $name, $description, $scriptType, $scriptContent,
                 $outputDirectory, $filePattern, $retentionMaxCount,
-                $scheduleEnabled, $scheduleInterval, $isActive, $id
+                $scheduleEnabled, $scheduleInterval, $isActive,
+                $restoreEnabled ? $restoreScriptType : null,
+                $restoreEnabled ? $restoreScriptContent : null,
+                $id
             ]);
         }
         else
@@ -100,13 +113,16 @@ if($_SERVER['REQUEST_METHOD'] === 'POST')
             $stmt = $pdo->prepare("
                 INSERT INTO backups (name, description, script_type, script_content,
                     output_directory, file_pattern, retention_max_count,
-                    schedule_enabled, schedule_interval, is_active)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    schedule_enabled, schedule_interval, is_active,
+                    restore_script_type, restore_script_content)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([
                 $name, $description, $scriptType, $scriptContent,
                 $outputDirectory, $filePattern, $retentionMaxCount,
-                $scheduleEnabled, $scheduleInterval, $isActive
+                $scheduleEnabled, $scheduleInterval, $isActive,
+                $restoreEnabled ? $restoreScriptType : null,
+                $restoreEnabled ? $restoreScriptContent : null,
             ]);
             $id = (int)$pdo->lastInsertId();
         }
@@ -131,18 +147,21 @@ if($_SERVER['REQUEST_METHOD'] === 'POST')
     }
 
     $backup = [
-        'id'                  => $id,
-        'name'                => $name,
-        'description'         => $description,
-        'script_type'         => $scriptType,
-        'script_content'      => $scriptContent,
-        'output_directory'    => $outputDirectory,
-        'file_pattern'        => $filePattern,
-        'retention_max_count' => $retentionMaxCount,
-        'schedule_enabled'    => $scheduleEnabled,
-        'schedule_interval'   => $scheduleInterval,
-        'is_active'           => $isActive,
+        'id'                     => $id,
+        'name'                   => $name,
+        'description'            => $description,
+        'script_type'            => $scriptType,
+        'script_content'         => $scriptContent,
+        'output_directory'       => $outputDirectory,
+        'file_pattern'           => $filePattern,
+        'retention_max_count'    => $retentionMaxCount,
+        'schedule_enabled'       => $scheduleEnabled,
+        'schedule_interval'      => $scheduleInterval,
+        'is_active'              => $isActive,
+        'restore_script_type'    => $restoreScriptType,
+        'restore_script_content' => $restoreScriptContent,
     ];
+    
     $tiers = $submittedTiers;
 }
 
@@ -207,6 +226,42 @@ $scriptType = $backup['script_type'] ?? 'bash';
                 The script is responsible for creating backup files in the output directory.
             </p>
             <textarea id="script_content" name="script_content"><?= htmlspecialchars($backup['script_content'] ?? '') ?></textarea>
+        </div>
+
+        <!-- Restore script editor -->
+        <?php
+        $hasRestore = !empty($backup['restore_script_content']);
+        $restoreType = $backup['restore_script_type'] ?? 'bash';
+        ?>
+        <div class="card">
+            <h2>Restore Script</h2>
+            <p style="margin-bottom:15px;color:#6c757d;">
+                Optional. Define a restore script that can be manually triggered from the dashboard
+                to recover data for this backup job. It will be executed the same way as the backup
+                script, but is never run automatically by the scheduler.
+            </p>
+            <div style="margin-bottom:15px;">
+                <label>
+                    <input type="checkbox" id="restore_enabled" name="restore_enabled" value="1"
+                           <?= $hasRestore ? 'checked' : '' ?>
+                           onchange="document.getElementById('restore-opts').style.display=this.checked?'block':'none'">
+                    Enable restore script for this job
+                </label>
+            </div>
+            <div id="restore-opts" style="display:<?= $hasRestore ? 'block' : 'none' ?>;">
+                <div style="margin-bottom:12px;">
+                    <label for="restore_script_type">Restore Script Type</label>
+                    <select id="restore_script_type" name="restore_script_type">
+                        <?php foreach (['bash', 'batch', 'powershell', 'php'] as $t): ?>
+                            <option value="<?= $t ?>" <?= $restoreType === $t ? 'selected' : '' ?>><?= $t ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <p class="form-hint" style="margin-bottom:8px;">
+                    This script is written to a temp file and executed when "Run Restore" is triggered.
+                </p>
+                <textarea id="restore_script_content" name="restore_script_content"><?= htmlspecialchars($backup['restore_script_content'] ?? '') ?></textarea>
+            </div>
         </div>
 
         <!-- File detection -->
@@ -376,6 +431,19 @@ document.getElementById('script_type').addEventListener('change', function()
 {
     var mode = modeMap[this.value] || null;
     editor.setOption('mode', mode);
+});
+var restoreEditor = CodeMirror.fromTextArea(document.getElementById('restore_script_content'), {
+    mode: modeMap['<?= htmlspecialchars($restoreType, ENT_QUOTES) ?>'] || null,
+    theme: 'monokai',
+    lineNumbers: true,
+    indentWithTabs: true,
+    tabSize: 4,
+    lineWrapping: false,
+});
+document.getElementById('restore_script_type').addEventListener('change', function()
+{
+    var mode = modeMap[this.value] || null;
+    restoreEditor.setOption('mode', mode);
 });
 
 var granOptions = '<option value="all">Keep all</option><option value="daily">1 per day</option><option value="weekly">1 per week</option><option value="monthly">1 per month</option><option value="yearly">1 per year</option>';

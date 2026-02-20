@@ -18,6 +18,8 @@
 if(session_status() === PHP_SESSION_NONE)
     session_start();
 
+require_once __DIR__ . '/ip-restrict.php';
+
 if(isset($_SESSION['pb_logged_in']) && $_SESSION['pb_logged_in'] === true)
 {
     header('Location: dashboard.php');
