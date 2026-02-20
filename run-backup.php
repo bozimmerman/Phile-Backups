@@ -29,7 +29,7 @@ $stmt->execute([$id]);
 $backup = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$backup) { header('Location: backups.php'); exit; }
 
-// Streaming execution mode — called by JS fetch
+// Streaming execution mode - called by JS fetch
 if (isset($_GET['stream']))
 {
     header('Content-Type: text/plain; charset=utf-8');
@@ -112,7 +112,7 @@ if (isset($_GET['stream']))
         <h2>Run Backup: <?= htmlspecialchars($backup['name']) ?></h2>
         <table style="width:auto;margin:0 0 16px 0;">
             <tr><td style="padding:4px 12px 4px 0;color:#6c757d;">Type</td><td><span class="script-type"><?= htmlspecialchars($backup['script_type']) ?></span></td></tr>
-            <tr><td style="padding:4px 12px 4px 0;color:#6c757d;">Output dir</td><td><code><?= htmlspecialchars($backup['output_directory'] ?? '—') ?></code></td></tr>
+            <tr><td style="padding:4px 12px 4px 0;color:#6c757d;">Output dir</td><td><code><?= htmlspecialchars($backup['output_directory'] ?? '-') ?></code></td></tr>
             <tr><td style="padding:4px 12px 4px 0;color:#6c757d;">Pattern</td><td><code><?= htmlspecialchars($backup['file_pattern'] ?? '*') ?></code></td></tr>
         </table>
 

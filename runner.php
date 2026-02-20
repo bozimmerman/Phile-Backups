@@ -19,9 +19,9 @@
  * Phile-Backups runner daemon.
  *
  * Usage:
- *   php runner.php              — run continuously as a daemon
- *   php runner.php --once       — check for due jobs once, then exit
- *   php runner.php --job=N      — run a specific job by ID, then exit
+ *   php runner.php              - run continuously as a daemon
+ *   php runner.php --once       - check for due jobs once, then exit
+ *   php runner.php --job=N      - run a specific job by ID, then exit
  *
  * The process writes its PID to data/runner.pid and updates
  * data/runner.heartbeat every loop so the web UI can show its status.

@@ -103,7 +103,7 @@ if ($viewRunId)
                 <?php endif; ?>
                 <table style="width:auto;margin:0;">
                     <tr><td style="padding:4px 12px 4px 0;color:#6c757d;">Script type</td><td><span class="script-type"><?= htmlspecialchars($backup['script_type']) ?></span></td></tr>
-                    <tr><td style="padding:4px 12px 4px 0;color:#6c757d;">Output directory</td><td><code><?= htmlspecialchars($backup['output_directory'] ?? '—') ?></code></td></tr>
+                    <tr><td style="padding:4px 12px 4px 0;color:#6c757d;">Output directory</td><td><code><?= htmlspecialchars($backup['output_directory'] ?? '-') ?></code></td></tr>
                     <tr><td style="padding:4px 12px 4px 0;color:#6c757d;">File pattern</td><td><code><?= htmlspecialchars($backup['file_pattern'] ?? '*') ?></code></td></tr>
                     <tr><td style="padding:4px 12px 4px 0;color:#6c757d;">Schedule</td>
                         <td><?= $backup['schedule_enabled'] ? htmlspecialchars(formatInterval((int)$backup['schedule_interval'])) : '<span style="color:#6c757d;">manual</span>' ?></td></tr>
@@ -173,15 +173,15 @@ if ($viewRunId)
     <!-- Run log detail (if ?run=N) -->
     <?php if ($viewRun): ?>
     <div class="card">
-        <h2>Run Log — <?= date('Y-m-d H:i:s', (int)$viewRun['started_at']) ?></h2>
+        <h2>Run Log - <?= date('Y-m-d H:i:s', (int)$viewRun['started_at']) ?></h2>
         <p>
             Status: <?php
                 if ($viewRun['status'] === 'success')     echo '<span class="badge badge-success">Success</span>';
                 elseif ($viewRun['status'] === 'failure') echo '<span class="badge badge-danger">Failure</span>';
                 elseif ($viewRun['status'] === 'running') echo '<span class="badge badge-info">Running</span>';
             ?>
-            &nbsp; Exit code: <code><?= $viewRun['exit_code'] ?? '—' ?></code>
-            &nbsp; Triggered by: <?= htmlspecialchars($viewRun['triggered_by'] ?? '—') ?>
+            &nbsp; Exit code: <code><?= $viewRun['exit_code'] ?? '-' ?></code>
+            &nbsp; Triggered by: <?= htmlspecialchars($viewRun['triggered_by'] ?? '-') ?>
             <?php if ($viewRun['finished_at']): ?>
                 &nbsp; Duration: <?= (int)$viewRun['finished_at'] - (int)$viewRun['started_at'] ?>s
             <?php endif; ?>
@@ -223,8 +223,8 @@ if ($viewRunId)
                 <tr>
                     <td style="font-family:monospace;font-size:0.85em;"><?= htmlspecialchars($file['filename']) ?></td>
                     <td><?= formatBytes($file['filesize']) ?></td>
-                    <td><?= $file['file_mtime'] ? date('Y-m-d H:i', (int)$file['file_mtime']) : '—' ?></td>
-                    <td><?= $file['discovered_at'] ? date('Y-m-d H:i', (int)$file['discovered_at']) : '—' ?></td>
+                    <td><?= $file['file_mtime'] ? date('Y-m-d H:i', (int)$file['file_mtime']) : '-' ?></td>
+                    <td><?= $file['discovered_at'] ? date('Y-m-d H:i', (int)$file['discovered_at']) : '-' ?></td>
                     <td class="status-<?= $file['status'] ?>">
                         <?php
                         if ($file['status'] === 'active')
@@ -266,10 +266,10 @@ if ($viewRunId)
                     <td>
                         <?php if ($run['finished_at']): ?>
                             <?= (int)$run['finished_at'] - (int)$run['started_at'] ?>s
-                        <?php else: ?>—<?php endif; ?>
+                        <?php else: ?>-<?php endif; ?>
                     </td>
-                    <td><?= htmlspecialchars($run['triggered_by'] ?? '—') ?></td>
-                    <td><code><?= $run['exit_code'] ?? '—' ?></code></td>
+                    <td><?= htmlspecialchars($run['triggered_by'] ?? '-') ?></td>
+                    <td><code><?= $run['exit_code'] ?? '-' ?></code></td>
                     <td>
                         <?php
                         if ($run['status'] === 'success')      echo '<span class="badge badge-success">OK</span>';
