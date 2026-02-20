@@ -142,7 +142,7 @@ $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
         <div class="stat-card">
             <div class="stat-value" style="color:<?= $lastFailed ? '#dc3545' : '#28a745' ?>">
-                <?= $lastFailed ? date('m/d H:i', $lastFailed['last_run_time']) : 'None' ?>
+                <?= $lastFailed ? date('m/d H:i', $lastFailed['started_at']) : 'None' ?>
             </div>
             <div class="stat-label">Last Failure<?= $lastFailed ? ': ' . htmlspecialchars($lastFailed['name']) : '' ?></div>
         </div>
