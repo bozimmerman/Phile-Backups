@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS `backup_runs` (
     FOREIGN KEY (`backup_id`) REFERENCES `backups`(`id`) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS `idx_backups_active`       ON `backups`(`is_active`);
-CREATE INDEX IF NOT EXISTS `idx_backup_files_backup`  ON `backup_files`(`backup_id`, `status`);
-CREATE INDEX IF NOT EXISTS `idx_backup_runs_backup`   ON `backup_runs`(`backup_id`, `started_at`);
-CREATE INDEX IF NOT EXISTS `idx_retention_tiers_backup` ON `retention_tiers`(`backup_id`, `sort_order`);
+CREATE INDEX `idx_backups_active`         ON `backups`(`is_active`);
+CREATE INDEX `idx_backup_files_backup`    ON `backup_files`(`backup_id`, `status`);
+CREATE INDEX `idx_backup_runs_backup`     ON `backup_runs`(`backup_id`, `started_at`);
+CREATE INDEX `idx_retention_tiers_backup` ON `retention_tiers`(`backup_id`, `sort_order`);
