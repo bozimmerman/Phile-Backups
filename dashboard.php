@@ -60,6 +60,12 @@ $lastFailed = $pdo->query("
     SELECT br.started_at, b.name FROM backup_runs br
     JOIN backups b ON b.id = br.backup_id
     WHERE br.status = 'failure'
+      AND NOT EXISTS (
+          SELECT 1 FROM backup_runs br2
+          WHERE br2.backup_id = br.backup_id
+            AND br2.status = 'success'
+            AND br2.started_at > br.started_at
+      )
     ORDER BY br.started_at DESC LIMIT 1
 ")->fetch(PDO::FETCH_ASSOC);
 
@@ -83,6 +89,7 @@ $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </head>
 <body>
 <header>
+    <img src="logo.png" alt="<?= htmlspecialchars($config['app_name']) ?>" class="header-logo">
     <h1><?= htmlspecialchars($config['app_name']) ?></h1>
     <nav>
         <a href="dashboard.php" class="active">Dashboard</a>
@@ -94,7 +101,7 @@ $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <div class="container">
 
     <!-- Runner status bar -->
-    <div class="runner-bar">
+    <div class="runner-bar" title="The scheduler is a background daemon that wakes every 30 seconds to check for due jobs. Start it once; it runs until stopped or the server restarts.">
         <span class="runner-label">Scheduler:</span>
         <?php
         $statusBadge = match($runner['status']) {

@@ -24,6 +24,14 @@ header {
     color: white;
     padding: 20px 0;
     margin-bottom: 30px;
+    position: relative;
+}
+
+.header-logo {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 header h1 {
@@ -192,6 +200,17 @@ button.danger,
 button.danger:hover,
 .button.danger:hover {
     background: #c82333;
+}
+
+button.warning,
+.button.warning {
+    background: #856404;
+    color: #fff3cd;
+}
+
+button.warning:hover,
+.button.warning:hover {
+    background: #6d5203;
 }
 
 button.small,

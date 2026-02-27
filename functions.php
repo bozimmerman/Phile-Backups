@@ -70,7 +70,27 @@ function executeScript($backup)
     if(is_resource($process))
     {
         fclose($pipes[0]);
-        $output   = stream_get_contents($pipes[1]) . stream_get_contents($pipes[2]);
+        stream_set_blocking($pipes[1], false);
+        stream_set_blocking($pipes[2], false);
+        $output  = '';
+        $done1   = false;
+        $done2   = false;
+        while(!$done1 || !$done2)
+        {
+            $read   = array_filter([$done1 ? null : $pipes[1], $done2 ? null : $pipes[2]]);
+            $write  = null;
+            $except = null;
+            if(empty($read) || stream_select($read, $write, $except, 5) === false)
+                break;
+            foreach($read as $pipe)
+            {
+                $chunk = fread($pipe, 8192);
+                if($chunk !== false && $chunk !== '')
+                    $output .= $chunk;
+            }
+            if(!$done1 && feof($pipes[1])) $done1 = true;
+            if(!$done2 && feof($pipes[2])) $done2 = true;
+        }
         fclose($pipes[1]);
         fclose($pipes[2]);
         $exitCode = proc_close($process);

@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS `backup_runs` (
     `started_at`   INT         DEFAULT 0,
     `finished_at`  INT         DEFAULT NULL,
     `exit_code`    INT         DEFAULT NULL,
-    `output_log`   TEXT,
+    `output_log`   MEDIUMTEXT,
     `status`       VARCHAR(20) DEFAULT 'running',
     `triggered_by` VARCHAR(20) DEFAULT 'manual',
     FOREIGN KEY (`backup_id`) REFERENCES `backups`(`id`) ON DELETE CASCADE

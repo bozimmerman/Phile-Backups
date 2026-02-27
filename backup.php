@@ -31,6 +31,15 @@ if(!$backup) { header('Location: backups.php'); exit; }
 
 $savedMsg = isset($_GET['saved']) ? 'Job saved successfully.' : null;
 
+if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_run_id']))
+{
+    $resetId = (int)$_POST['reset_run_id'];
+    $stmt = $pdo->prepare("UPDATE backup_runs SET status = 'interrupted', finished_at = ? WHERE id = ? AND backup_id = ? AND status = 'running'");
+    $stmt->execute([time(), $resetId, $id]);
+    header('Location: backup.php?id=' . $id);
+    exit;
+}
+
 //scanBackupFiles($pdo, $backup);
 
 $stmt = $pdo->prepare("SELECT * FROM retention_tiers WHERE backup_id = ? ORDER BY sort_order ASC");
@@ -77,6 +86,7 @@ if($viewRunId)
 </head>
 <body>
 <header>
+    <img src="logo.png" alt="<?= htmlspecialchars($config['app_name']) ?>" class="header-logo">
     <h1><?= htmlspecialchars($config['app_name']) ?></h1>
     <nav>
         <a href="dashboard.php">Dashboard</a>
@@ -274,14 +284,22 @@ if($viewRunId)
                     <td><code><?= $run['exit_code'] ?? '-' ?></code></td>
                     <td>
                         <?php
-                        if($run['status'] === 'success')      echo '<span class="badge badge-success">OK</span>';
-                        elseif($run['status'] === 'failure')  echo '<span class="badge badge-danger">Failed</span>';
-                        elseif($run['status'] === 'running')  echo '<span class="badge badge-info">Running</span>';
-                        else                                   echo htmlspecialchars($run['status']);
+                        if($run['status'] === 'success')          echo '<span class="badge badge-success">OK</span>';
+                        elseif($run['status'] === 'failure')      echo '<span class="badge badge-danger">Failed</span>';
+                        elseif($run['status'] === 'running')      echo '<span class="badge badge-info">Running</span>';
+                        elseif($run['status'] === 'interrupted')  echo '<span class="badge badge-warning">Interrupted</span>';
+                        else                                       echo htmlspecialchars($run['status']);
                         ?>
                     </td>
                     <td>
                         <a href="backup.php?id=<?= $id ?>&run=<?= $run['id'] ?>" class="button secondary small">View Log</a>
+                        <?php if($run['status'] === 'running'): ?>
+                            <form method="POST" style="display:inline;margin:0;">
+                                <input type="hidden" name="reset_run_id" value="<?= $run['id'] ?>">
+                                <button type="submit" class="button warning small"
+                                        onclick="return confirm('Mark this run as interrupted?')">Reset</button>
+                            </form>
+                        <?php endif; ?>
                     </td>
                 </tr>
             <?php endforeach; ?>

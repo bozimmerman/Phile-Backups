@@ -58,6 +58,7 @@ $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </head>
 <body>
 <header>
+    <img src="logo.png" alt="<?= htmlspecialchars($config['app_name']) ?>" class="header-logo">
     <h1><?= htmlspecialchars($config['app_name']) ?></h1>
     <nav>
         <a href="dashboard.php">Dashboard</a>

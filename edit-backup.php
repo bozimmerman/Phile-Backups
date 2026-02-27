@@ -179,6 +179,7 @@ $scriptType = $backup['script_type'] ?? 'bash';
 </head>
 <body>
 <header>
+    <img src="logo.png" alt="<?= htmlspecialchars($config['app_name']) ?>" class="header-logo">
     <h1><?= htmlspecialchars($config['app_name']) ?></h1>
     <nav>
         <a href="dashboard.php">Dashboard</a>
@@ -273,14 +274,14 @@ $scriptType = $backup['script_type'] ?? 'bash';
                     <input type="text" id="output_directory" name="output_directory"
                            placeholder="/var/backups/myapp"
                            value="<?= htmlspecialchars($backup['output_directory'] ?? '') ?>">
-                    <p class="form-hint">Absolute path where backup files are written.</p>
+                    <p class="form-hint">Absolute path where backup files are written. The directory is scanned for new or removed files automatically after each backup run — files added by other means will be picked up on the next run.</p>
                 </div>
                 <div>
                     <label for="file_pattern">File Pattern</label>
                     <input type="text" id="file_pattern" name="file_pattern"
                            placeholder="*.tar.gz"
                            value="<?= htmlspecialchars($backup['file_pattern'] ?? '*') ?>">
-                    <p class="form-hint">Glob pattern to match backup files (e.g. <code>backup_*.tar.gz</code>).</p>
+                    <p class="form-hint">Glob pattern to match backup files (e.g. <code>backup_*.tar.gz</code>). No specific filename format is required — files are tracked by filesystem modification time, not name.</p>
                 </div>
             </div>
         </div>
@@ -290,8 +291,11 @@ $scriptType = $backup['script_type'] ?? 'bash';
             <h2>Retention Policy</h2>
             <p style="margin-bottom:15px;color:#6c757d;">
                 Tiers are evaluated from top to bottom. Each file is matched to the first tier
-                whose age limit covers it. Within a tier, only the most recent file per period
-                is kept. Files matching no tier are deleted.
+                whose age limit covers it. Age limits are rolling windows measured from now —
+                not calendar boundaries. Within a tier, the most recent file per period is kept;
+                period groupings (daily, weekly, monthly, yearly) use calendar boundaries
+                (e.g. "1 per year" keeps the newest file from each calendar year, not one per
+                trailing 365 days). Files matching no tier are deleted.
             </p>
 
             <div id="tier-list" class="tier-list">
@@ -375,13 +379,18 @@ $scriptType = $backup['script_type'] ?? 'bash';
                     <option value="43200">Every 12 hours</option>
                     <option value="86400">Every 1 day</option>
                     <option value="604800">Every 1 week</option>
+                    <option value="1209600">Every 2 weeks</option>
+                    <option value="2592000">Every 1 month</option>
+                    <option value="7776000">Every 3 months</option>
+                    <option value="15552000">Every 6 months</option>
+                    <option value="31536000">Every 1 year</option>
                     <option value="custom">Custom (seconds)</option>
                 </select>
                 <div style="margin-top:10px;">
                     <label for="schedule_interval">Interval (seconds)</label>
                     <input type="number" id="schedule_interval" name="schedule_interval" min="60"
                            value="<?= (int)($backup['schedule_interval'] ?? 86400) ?>" style="width:200px;">
-                    <p class="form-hint">Minimum 60 seconds.</p>
+                    <p class="form-hint">Minimum 60 seconds. If the scheduler is stopped and restarted, any overdue jobs will run once immediately — multiple missed runs are not replayed.</p>
                 </div>
             </div>
         </div>
@@ -478,11 +487,32 @@ function removeTier(btn)
     btn.closest('[data-tier]').remove();
 }
 
-function applyPreset(val) 
+function applyPreset(val)
 {
     if(val && val !== 'custom')
         document.getElementById('schedule_interval').value = val;
 }
+
+function syncPresetToInterval()
+{
+    var val = parseInt(document.getElementById('schedule_interval').value, 10);
+    var sel = document.getElementById('schedule_preset');
+    var matched = false;
+    for(var i = 0; i < sel.options.length; i++)
+    {
+        if(parseInt(sel.options[i].value, 10) === val)
+        {
+            sel.value = sel.options[i].value;
+            matched = true;
+            break;
+        }
+    }
+    if(!matched)
+        sel.value = 'custom';
+}
+
+document.getElementById('schedule_interval').addEventListener('input', syncPresetToInterval);
+syncPresetToInterval();
 </script>
 </body>
 </html>

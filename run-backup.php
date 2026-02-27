@@ -31,6 +31,8 @@ if(!$backup) { header('Location: backups.php'); exit; }
 
 if(isset($_GET['stream']))
 {
+    set_time_limit(0);
+    ignore_user_abort(true);
     header('Content-Type: text/plain; charset=utf-8');
     header('Cache-Control: no-cache');
     header('X-Accel-Buffering: no');
@@ -96,6 +98,7 @@ if(isset($_GET['stream']))
 </head>
 <body>
 <header>
+    <img src="logo.png" alt="<?= htmlspecialchars($config['app_name']) ?>" class="header-logo">
     <h1><?= htmlspecialchars($config['app_name']) ?></h1>
     <nav>
         <a href="dashboard.php">Dashboard</a>
