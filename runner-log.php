@@ -17,7 +17,8 @@
 
 require_once __DIR__ . '/auth.php';
 $config  = require __DIR__ . '/conphig.php';
-$logFile = $config['data_dir'] . '/runner.log';
+require_once __DIR__ . '/functions.php';
+$logFile = $config['data_dir'] . '/runner_log.php';
 ?>
 <!DOCTYPE html>
 <html>
@@ -47,7 +48,7 @@ $logFile = $config['data_dir'] . '/runner.log';
         if(!file_exists($logFile))
             echo '(no log file yet)';
         else
-            echo htmlspecialchars(file_get_contents($logFile));
+            echo htmlspecialchars(readDataFile($logFile));
         ?></div>
     </div>
 </div>

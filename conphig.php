@@ -31,7 +31,7 @@ return [
         'port'    => 3306,
     ],
     
-    'data_dir' => '/tmp/phile-backups',
+    'data_dir' =>  __DIR__ . '/data',
     
     /*
      * Security: IP / subnet allowlist.

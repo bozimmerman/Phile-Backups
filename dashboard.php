@@ -30,7 +30,8 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['runner_action']))
     {
         if(!is_dir($dataDir))
             mkdir($dataDir, 0755, true);
-        $logFile = $dataDir . '/runner.log';
+        $logFile = $dataDir . '/runner_log.php';
+        file_put_contents($logFile, "<?php exit; ?>\n");
         $runnerPath = escapeshellarg(__DIR__ . '/runner.php');
         // PHP_BINARY under php-fpm points to the fpm binary, not the CLI interpreter.
         // Find the actual CLI binary alongside it, or fall back to 'php' on PATH.
@@ -47,20 +48,20 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['runner_action']))
             else
                 $phpBin = 'php';
         }
-        exec(escapeshellarg($phpBin) . " $runnerPath > " . escapeshellarg($logFile) . " 2>&1 &");
+        exec(escapeshellarg($phpBin) . " $runnerPath >> " . escapeshellarg($logFile) . " 2>&1 &");
         sleep(1);
         // Record the PID so we can distinguish a web-started runner from an external one.
-        $pidFile = $dataDir . '/runner.pid';
+        $pidFile = $dataDir . '/runner_pid.php';
         if(file_exists($pidFile))
-            file_put_contents($dataDir . '/runner.web_pid', trim(file_get_contents($pidFile)));
+            file_put_contents($dataDir . '/runner_web_pid.php', "<?php exit; ?>\n" . readDataFile($pidFile));
         $runnerMsg = ['type' => 'success', 'text' => 'Runner started.'];
     }
     elseif($action === 'stop')
     {
-        $pidFile = $dataDir . '/runner.pid';
+        $pidFile = $dataDir . '/runner_pid.php';
         if(file_exists($pidFile))
         {
-            $pid = (int)file_get_contents($pidFile);
+            $pid = (int)readDataFile($pidFile);
             if($pid > 0)
                 posix_kill($pid, 15); // SIGTERM
             @unlink($pidFile);
@@ -137,8 +138,8 @@ $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
             echo ' <span style="color:#6c757d;font-size:0.9em;">Last heartbeat: ' . date('H:i:s', $runner['heartbeat']) . '</span>';
         ?>
         <?php
-        $webPidFile    = $config['data_dir'] . '/runner.web_pid';
-        $webPid        = file_exists($webPidFile) ? (int)file_get_contents($webPidFile) : 0;
+        $webPidFile    = $config['data_dir'] . '/runner_web_pid.php';
+        $webPid        = file_exists($webPidFile) ? (int)readDataFile($webPidFile) : 0;
         $externalRunner = ($runner['status'] === 'running' && $runner['pid'] && $webPid !== $runner['pid']);
         ?>
         <div class="runner-actions">

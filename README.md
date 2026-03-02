@@ -8,14 +8,14 @@ A self-hosted PHP web UI for managing backup scripts, scheduling runs, and autom
 
 ## Features
 
-- **Centralized script management** — write and store backup scripts (Bash, PHP, PowerShell, Batch) directly in the UI with syntax highlighting
-- **Scheduler daemon** — background runner checks for due jobs every 30 seconds, no cron required
-- **File tracking** — after each run, the output directory is scanned and files are inventoried in the database
-- **Tiered retention** — define layered rules such as "keep daily for 30 days, weekly for 90 days, one per year beyond that", with an optional hard file count cap
-- **Run history** — every execution is logged with status, exit code, duration, and full script output
-- **Restore scripts** — optionally attach a restore script to any job, triggerable manually from the dashboard
-- **MySQL and SQLite** — schema is initialized automatically on first run
-- **IP allowlist** — optionally restrict access to specific IPs or CIDR ranges
+- **Centralized script management** -- write and store backup scripts (Bash, PHP, PowerShell, Batch) directly in the UI with syntax highlighting
+- **Scheduler daemon** -- background runner checks for due jobs every 30 seconds, no cron required
+- **File tracking** -- after each run, the output directory is scanned and files are inventoried in the database
+- **Tiered retention** -- define layered rules such as "keep daily for 30 days, weekly for 90 days, one per year beyond that", with an optional hard file count cap
+- **Run history** -- every execution is logged with status, exit code, duration, and full script output
+- **Restore scripts** -- optionally attach a restore script to any job, triggerable manually from the dashboard
+- **MySQL and SQLite** -- schema is initialized automatically on first run
+- **IP allowlist** -- optionally restrict access to specific IPs or CIDR ranges
 
 ---
 
@@ -24,7 +24,8 @@ A self-hosted PHP web UI for managing backup scripts, scheduling runs, and autom
 - PHP 8.0+
 - MySQL 5.7+ **or** SQLite 3
 - A web server (Apache, nginx, etc.) with PHP-FPM or mod_php
-- `proc_open`, `pcntl` extensions (for script execution and signal handling)
+- `proc_open`, `posix` extensions (for script execution and process management)
+- `pcntl` extension (CLI only -- used by `runner.php` for signal handling)
 
 ---
 
@@ -35,13 +36,7 @@ A self-hosted PHP web UI for managing backup scripts, scheduling runs, and autom
    cp -r Phile-Backups/ /var/www/html/philebackups/
    ```
 
-2. **Create the data directory** and make it writable by your web server user:
-   ```bash
-   mkdir /var/www/html/philebackups/data
-   chown apache:apache /var/www/html/philebackups/data
-   ```
-
-3. **Configure the app** by editing `conphig.php`:
+2. **Configure the app** by editing `conphig.php`:
    ```php
    'admin_password' => 'yourpassword',
 
@@ -51,11 +46,12 @@ A self-hosted PHP web UI for managing backup scripts, scheduling runs, and autom
        'name' => 'phile_backups',
        'user' => 'dbuser',
        'pass' => 'dbpass',
+       'path' => '/path/to/phile-backups.db', // sqlite only
    ],
    ```
    The database and schema are created automatically on first access.
 
-4. **Start the scheduler** — the simplest approach is a systemd service:
+3. **Start the scheduler** -- the simplest approach is a systemd service:
 
    Create `/etc/systemd/system/philebackups.service`:
    ```ini
@@ -83,7 +79,7 @@ A self-hosted PHP web UI for managing backup scripts, scheduling runs, and autom
    systemctl enable --now philebackups
    ```
 
-5. **Log in** — navigate to the app in your browser and log in with your configured password.
+4. **Log in** -- navigate to the app in your browser and log in with your configured password.
 
 ---
 
@@ -96,7 +92,7 @@ A self-hosted PHP web UI for managing backup scripts, scheduling runs, and autom
 | `db.type` | `'mysql'` or `'sqlite'` |
 | `db.path` | Path to SQLite file (SQLite only) |
 | `db.host` / `db.name` / `db.user` / `db.pass` | MySQL connection details |
-| `data_dir` | Directory for `runner.pid`, `runner.heartbeat`, `runner.log` |
+| `data_dir` | Directory for runtime files (`runner_pid.php`, `runner_heartbeat.php`, `runner_log.php`). Must be accessible to both the web server and the runner process |
 | `security.allowed_ips` | Array of allowed IPs/CIDR blocks; empty = allow all |
 
 ### IP Restriction Examples
@@ -115,16 +111,16 @@ A self-hosted PHP web UI for managing backup scripts, scheduling runs, and autom
 
 Each job defines:
 
-- **Script** — the code that runs to produce backup files (Bash, PHP, PowerShell, or Batch)
-- **Output directory** — where the script writes its files
-- **File pattern** — glob pattern used to detect output files (e.g. `backup_*.tar.gz`)
-- **Retention policy** — tiered rules controlling how long files are kept
-- **Schedule** — optional automatic interval (from every hour to once a year)
-- **Restore script** — optional script for recovering from a backup, manually triggered
+- **Script** -- the code that runs to produce backup files (Bash, PHP, PowerShell, or Batch)
+- **Output directory** -- where the script writes its files
+- **File pattern** -- glob pattern used to detect output files (e.g. `backup_*.tar.gz`)
+- **Retention policy** -- tiered rules controlling how long files are kept
+- **Schedule** -- optional automatic interval (from every hour to once a year)
+- **Restore script** -- optional script for recovering from a backup, manually triggered
 
 ### Script Responsibilities
 
-Your script is responsible for creating files in the output directory. Phile-Backups handles everything else — detecting the files, tracking them in the database, and pruning old ones according to your retention rules.
+Your script is responsible for creating files in the output directory. Phile-Backups handles everything else -- detecting the files, tracking them in the database, and pruning old ones according to your retention rules.
 
 ```bash
 #!/bin/bash
@@ -153,9 +149,9 @@ Retention is enforced automatically after each run. Tiers are evaluated top to b
 ### Notes
 
 - **Age limits** are rolling windows from now (e.g. "30 days" means 30 days before the current moment)
-- **Period groupings** (daily, weekly, monthly, yearly) use **calendar boundaries** — "1 per week" keeps the newest file from each ISO calendar week, not one per rolling 7-day window
+- **Period groupings** (daily, weekly, monthly, yearly) use **calendar boundaries** -- "1 per week" keeps the newest file from each ISO calendar week, not one per rolling 7-day window
 - **The cap** applies after tier rules and keeps the N newest tier-selected files
-- **No specific filename format** is required — files are tracked by filesystem modification time, not name
+- **No specific filename format** is required -- files are tracked by filesystem modification time, not name
 
 ---
 
@@ -197,10 +193,10 @@ If a run gets stuck in `running` state (e.g. due to a crashed web request), it c
 
 ## Restore Scripts
 
-Any job can have an optional restore script. It is never run automatically — it must be triggered manually from the dashboard with an explicit confirmation. The output is streamed in real time and logged to run history.
+Any job can have an optional restore script. It is never run automatically -- it must be triggered manually from the dashboard with an explicit confirmation. The output is streamed in real time and logged to run history.
 
 ---
 
 ## License
 
-Apache License 2.0 — Copyright 2026 Bo Zimmerman
+Apache License 2.0 -- Copyright 2026 Bo Zimmerman

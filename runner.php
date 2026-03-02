@@ -43,9 +43,9 @@ require_once $appRoot . '/db.php';
 require_once $appRoot . '/functions.php';
 
 $dataDir       = $config['data_dir'];
-$pidFile       = $dataDir . '/runner.pid';
-$heartbeatFile = $dataDir . '/runner.heartbeat';
-$logFile       = $dataDir . '/runner.log';
+$pidFile       = $dataDir . '/runner_pid.php';
+$heartbeatFile = $dataDir . '/runner_heartbeat.php';
+$logFile       = $dataDir . '/runner_log.php';
 
 if(!is_dir($dataDir))
     mkdir($dataDir, 0755, true);
@@ -72,7 +72,7 @@ function logLine($msg)
     echo $line;
 }
 
-file_put_contents($pidFile, getmypid());
+file_put_contents($pidFile, "<?php exit; ?>\n" . getmypid());
 
 logLine("Runner started (PID " . getmypid() . ")");
 if($once)    logLine("Mode: once");
@@ -86,7 +86,7 @@ do
     if(!$running)
         break;
 
-    file_put_contents($heartbeatFile, time());
+    file_put_contents($heartbeatFile, "<?php exit; ?>\n" . time());
 
     try
     {

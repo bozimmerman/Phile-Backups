@@ -347,19 +347,26 @@ function granularityLabel($gran)
     return $labels[$gran] ?? $gran;
 }
 
+function readDataFile($path)
+{
+    $content = file_get_contents($path);
+    $nl = strpos($content, "\n");
+    return $nl !== false ? trim(substr($content, $nl + 1)) : trim($content);
+}
+
 function getRunnerStatus($config)
 {
     $dataDir       = $config['data_dir'] ?? (__DIR__ . '/data');
-    $pidFile       = $dataDir . '/runner.pid';
-    $heartbeatFile = $dataDir . '/runner.heartbeat';
+    $pidFile       = $dataDir . '/runner_pid.php';
+    $heartbeatFile = $dataDir . '/runner_heartbeat.php';
 
     if(!file_exists($pidFile))
         return ['status' => 'stopped', 'pid' => null, 'heartbeat' => null];
 
-    $pid       = (int)file_get_contents($pidFile);
-    $heartbeat = file_exists($heartbeatFile) ? (int)file_get_contents($heartbeatFile) : null;
+    $pid       = (int)readDataFile($pidFile);
+    $heartbeat = file_exists($heartbeatFile) ? (int)readDataFile($heartbeatFile) : null;
 
-    if($pid > 0 && file_exists("/proc/$pid"))
+    if($pid > 0 && (posix_kill($pid, 0) || posix_get_last_error() === 1))
     {
         $age = $heartbeat ? (time() - $heartbeat) : null;
         if($age !== null && $age > 120)
