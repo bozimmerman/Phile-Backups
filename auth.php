@@ -20,6 +20,11 @@ if(session_status() === PHP_SESSION_NONE)
 
 require_once __DIR__ . '/ip-restrict.php';
 
+$_pbConfig = require __DIR__ . '/conphig.php';
+if(empty($_pbConfig['admin_password']))
+    $_SESSION['pb_logged_in'] = true;
+unset($_pbConfig);
+
 if(!isset($_SESSION['pb_logged_in']) || $_SESSION['pb_logged_in'] !== true)
 {
     header('Location: login.php');

@@ -22,7 +22,7 @@ return [
     
     'db' => [
         'type'    => 'mysql',
-        'path'    => __DIR__ . '/data/phile-backups.db', // for sqlite
+        'path'    => '/var/lib/phile-backups/database.db', // for sqlite
         'host'    => 'localhost',
         'name'    => 'phile_backups',
         'user'    => 'root',
@@ -31,7 +31,7 @@ return [
         'port'    => 3306,
     ],
     
-    'data_dir' => __DIR__ . '/data',
+    'data_dir' => '/tmp/phile-backups',
     
     /*
      * Security: IP / subnet allowlist.

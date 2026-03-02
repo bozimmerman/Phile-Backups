@@ -160,7 +160,6 @@ do
     if($once || $jobId)
         break;
 
-    logLine("Sleeping 30s...");
     for($i = 0; $i < 30 && $running; $i++)
     {
         sleep(1);

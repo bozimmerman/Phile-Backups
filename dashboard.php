@@ -28,10 +28,31 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['runner_action']))
     $dataDir = $config['data_dir'];
     if($action === 'start')
     {
+        if(!is_dir($dataDir))
+            mkdir($dataDir, 0755, true);
         $logFile = $dataDir . '/runner.log';
         $runnerPath = escapeshellarg(__DIR__ . '/runner.php');
-        exec(PHP_BINARY . " $runnerPath > " . escapeshellarg($logFile) . " 2>&1 &");
+        // PHP_BINARY under php-fpm points to the fpm binary, not the CLI interpreter.
+        // Find the actual CLI binary alongside it, or fall back to 'php' on PATH.
+        $phpBin = PHP_BINARY;
+        if(stripos($phpBin, 'fpm') !== false || stripos($phpBin, 'cgi') !== false)
+        {
+            $dir       = dirname($phpBin);
+            $versioned = $dir . '/php' . PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
+            $plain     = $dir . '/php';
+            if(is_executable($versioned))
+                $phpBin = $versioned;
+            elseif(is_executable($plain))
+                $phpBin = $plain;
+            else
+                $phpBin = 'php';
+        }
+        exec(escapeshellarg($phpBin) . " $runnerPath > " . escapeshellarg($logFile) . " 2>&1 &");
         sleep(1);
+        // Record the PID so we can distinguish a web-started runner from an external one.
+        $pidFile = $dataDir . '/runner.pid';
+        if(file_exists($pidFile))
+            file_put_contents($dataDir . '/runner.web_pid', trim(file_get_contents($pidFile)));
         $runnerMsg = ['type' => 'success', 'text' => 'Runner started.'];
     }
     elseif($action === 'stop')
@@ -41,7 +62,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['runner_action']))
         {
             $pid = (int)file_get_contents($pidFile);
             if($pid > 0)
-                posix_kill($pid, SIGTERM);
+                posix_kill($pid, 15); // SIGTERM
             @unlink($pidFile);
         }
         $runnerMsg = ['type' => 'success', 'text' => 'Stop signal sent to runner.'];
@@ -95,7 +116,7 @@ $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <a href="dashboard.php" class="active">Dashboard</a>
         <a href="backups.php">Backup Jobs</a>
         <a href="edit-backup.php">+ New Job</a>
-        <a href="logout.php">Logout</a>
+        <?php if(!empty($config['admin_password'])): ?><a href="logout.php">Logout</a><?php endif; ?>
     </nav>
 </header>
 <div class="container">
@@ -115,20 +136,26 @@ $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
         if($runner['heartbeat'])
             echo ' <span style="color:#6c757d;font-size:0.9em;">Last heartbeat: ' . date('H:i:s', $runner['heartbeat']) . '</span>';
         ?>
+        <?php
+        $webPidFile    = $config['data_dir'] . '/runner.web_pid';
+        $webPid        = file_exists($webPidFile) ? (int)file_get_contents($webPidFile) : 0;
+        $externalRunner = ($runner['status'] === 'running' && $runner['pid'] && $webPid !== $runner['pid']);
+        ?>
         <div class="runner-actions">
             <?php if($runner['status'] !== 'running'): ?>
                 <form method="POST" style="margin:0;">
                     <input type="hidden" name="runner_action" value="start">
-                    <button type="submit" class="button success small">Start Runner</button>
+                    <button type="submit" class="button success small"
+                        <?= $externalRunner ? 'disabled title="Runner is managed externally"' : '' ?>>Start Runner</button>
                 </form>
-            <?php else: ?>
+            <?php elseif(!$externalRunner): ?>
                 <form method="POST" style="margin:0;">
                     <input type="hidden" name="runner_action" value="stop">
                     <button type="submit" class="button danger small">Stop Runner</button>
                 </form>
             <?php endif; ?>
-            <?php if($runner['status'] === 'running'): ?>
-                <a href="data/runner.log" class="button secondary small" target="_blank">View Log</a>
+            <?php if(!$externalRunner && $runner['status'] === 'running'): ?>
+                <a href="runner-log.php" class="button secondary small" target="_blank">View Log</a>
             <?php endif; ?>
         </div>
     </div>

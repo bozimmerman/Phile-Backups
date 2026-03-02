@@ -185,7 +185,7 @@ $scriptType = $backup['script_type'] ?? 'bash';
         <a href="dashboard.php">Dashboard</a>
         <a href="backups.php">Backup Jobs</a>
         <a href="edit-backup.php" class="active">+ New Job</a>
-        <a href="logout.php">Logout</a>
+        <?php if(!empty($config['admin_password'])): ?><a href="logout.php">Logout</a><?php endif; ?>
     </nav>
 </header>
 <div class="container">

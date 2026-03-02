@@ -27,7 +27,14 @@ if(isset($_SESSION['pb_logged_in']) && $_SESSION['pb_logged_in'] === true)
 }
 
 $config = require __DIR__ . '/conphig.php';
-$error  = null;
+
+if(empty($config['admin_password']))
+{
+    header('Location: dashboard.php');
+    exit;
+}
+
+$error = null;
 
 if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['password']))
 {
