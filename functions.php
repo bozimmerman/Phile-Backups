@@ -133,30 +133,37 @@ function scanBackupFiles($pdo, $backup)
         
         foreach ($found as $filepath)
         {
-            $filepath = realpath($filepath) ?: $filepath;
-            $foundPaths[$filepath] = true;
-            $mtime = (int)filemtime($filepath);
-            $size  = (int)filesize($filepath);
-            
-            if(!isset($existing[$filepath]))
+            try
             {
-                $stmt = $pdo->prepare("INSERT INTO backup_files (backup_id, filename, filepath, filesize, file_mtime, status, discovered_at) VALUES (?, ?, ?, ?, ?, 'active', ?)");
-                $stmt->execute([$backup['id'], basename($filepath), $filepath, $size, $mtime, $now]);
-            }
-            else
-            {
-                $row = $existing[$filepath];
-                if($row['status'] === 'deleted')
+                $filepath = realpath($filepath) ?: $filepath;
+                $foundPaths[$filepath] = true;
+                $mtime = (int)filemtime($filepath);
+                $size  = (int)filesize($filepath);
+
+                if(!isset($existing[$filepath]))
                 {
-                    $stmt = $pdo->prepare("UPDATE backup_files SET filesize = ?, file_mtime = ?, status = 'active', deleted_at = NULL WHERE id = ?");
-                    $stmt->execute([$size, $mtime, $row['id']]);
+                    $stmt = $pdo->prepare("INSERT INTO backup_files (backup_id, filename, filepath, filesize, file_mtime, status, discovered_at) VALUES (?, ?, ?, ?, ?, 'active', ?)");
+                    $stmt->execute([$backup['id'], basename($filepath), $filepath, $size, $mtime, $now]);
                 }
                 else
-                if($row['filesize'] != $size || $row['file_mtime'] != $mtime)
                 {
-                    $stmt = $pdo->prepare("UPDATE backup_files SET filesize = ?, file_mtime = ?, status = 'active' WHERE id = ?");
-                    $stmt->execute([$size, $mtime, $row['id']]);
+                    $row = $existing[$filepath];
+                    if($row['status'] === 'deleted')
+                    {
+                        $stmt = $pdo->prepare("UPDATE backup_files SET filesize = ?, file_mtime = ?, status = 'active', deleted_at = NULL WHERE id = ?");
+                        $stmt->execute([$size, $mtime, $row['id']]);
+                    }
+                    else
+                    if($row['filesize'] != $size || $row['file_mtime'] != $mtime)
+                    {
+                        $stmt = $pdo->prepare("UPDATE backup_files SET filesize = ?, file_mtime = ?, status = 'active' WHERE id = ?");
+                        $stmt->execute([$size, $mtime, $row['id']]);
+                    }
                 }
+            }
+            catch (Exception $e)
+            {
+                error_log("scanBackupFiles: Error processing file '$filepath': " . $e->getMessage());
             }
         }
         
@@ -308,7 +315,19 @@ function runBackupJob($pdo, $backup, $triggeredBy = 'manual', $streamOutput = fa
     $stmt = $pdo->prepare("UPDATE backups SET last_run_at = ? WHERE id = ?");
     $stmt->execute([$now, $backup['id']]);
 
-    scanBackupFiles($pdo, $backup);
+    try
+    {
+        scanBackupFiles($pdo, $backup);
+    }
+    catch (Exception $e)
+    {
+        $scanError = "\n\n[ERROR] Failed to scan/inventory backup files: " . $e->getMessage();
+        $result['output'] .= $scanError;
+        error_log("runBackupJob: " . $scanError);
+
+        $stmt = $pdo->prepare("UPDATE backup_runs SET output_log = ? WHERE id = ?");
+        $stmt->execute([$result['output'], $runId]);
+    }
 
     if($streamOutput)
         echo "\nScan complete. Exit code: {$result['exit_code']}\n";

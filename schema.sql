@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS `backup_files` (
     `backup_id`    INT          NOT NULL,
     `filename`     VARCHAR(255) NOT NULL,
     `filepath`     TEXT         NOT NULL,
-    `filesize`     INT          DEFAULT 0,
+    `filesize`     BIGINT       DEFAULT 0,
     `file_mtime`   INT          DEFAULT 0,
     `status`       VARCHAR(20)  DEFAULT 'active',
     `discovered_at` INT         DEFAULT 0,

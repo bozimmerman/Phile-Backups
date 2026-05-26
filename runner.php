@@ -145,16 +145,16 @@ do
                 $retResult = applyRetention($pdo, $backup);
                 logLine("  Retention: kept " . count($retResult['kept']) . ", deleted " . count($retResult['deleted']));
             }
-
-            $nextAt = $now + (int)$backup['schedule_interval'];
-            $stmt = $pdo->prepare("UPDATE backups SET next_run_at = ? WHERE id = ?");
-            $stmt->execute([$nextAt, $backup['id']]);
-            logLine("  Next run scheduled: " . date('Y-m-d H:i:s', $nextAt));
         }
         catch (Exception $e)
         {
             logLine("  Error running job #{$backup['id']}: " . $e->getMessage());
         }
+
+        $nextAt = time() + (int)$backup['schedule_interval'];
+        $stmt = $pdo->prepare("UPDATE backups SET next_run_at = ? WHERE id = ?");
+        $stmt->execute([$nextAt, $backup['id']]);
+        logLine("  Next run scheduled: " . date('Y-m-d H:i:s', $nextAt));
     }
 
     if($once || $jobId)
